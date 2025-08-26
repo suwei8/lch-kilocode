@@ -1,0 +1,56 @@
+# 定义所有的服务
+services:
+  # 后端 NestJS 服务
+  backend:
+    container_name: lch_backend
+    # 基于 backend 目录下的 Dockerfile 来构建镜像
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    # 将 .env 文件中的变量加载到容器中
+    env_file:
+      - ./backend/.env
+    # 容器端口映射到主机端口
+    ports:
+      - "3000:3000"
+    # 将本地代码目录挂载到容器中，实现热更新
+    volumes:
+      - ./backend:/usr/src/app
+      - /usr/src/app/node_modules
+    # 依赖于数据库服务，确保数据库先启动
+    depends_on:
+      - mysql
+      - redis
+    restart: unless-stopped
+    command: sh -c "mkdir -p dist && chmod -R 777 dist && npm run start:dev"
+
+  # MySQL 数据库服务
+  mysql:
+    image: mariadb:10.6
+    container_name: lch_mysql
+    restart: always
+    # 环境变量，用于初始化数据库
+    environment:
+      MYSQL_ROOT_PASSWORD: sw63828  # !!!请修改为你自己的安全密码
+      MYSQL_DATABASE: lch_db
+    ports:
+      - "3306:3306"
+    # 数据持久化，防止容器重启后数据丢失
+    volumes:
+      - lch_mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+
+  # Redis 服务
+  redis:
+    image: redis:7
+    container_name: lch_redis # 和你已有的容器名保持一致
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - lch_redis_data:/data
+
+# 定义数据卷，用于持久化存储
+volumes:
+  lch_mysql_data:
+  lch_redis_data:
